@@ -31,7 +31,11 @@ async def converter_audio(file: UploadFile = File(...), x_api_key: str = Header(
         with open(temp_audio_path, "rb") as f:
             audio_data = f.read()
             
-        return Response(content=audio_data, media_type="audio/mpeg")
+        return Response(
+            content=audio_data, 
+            media_type="audio/mpeg",
+            headers={"Content-Disposition": "attachment; filename=\"audio.mp3\""}
+        )
         
     finally:
         if os.path.exists(temp_video_path):
