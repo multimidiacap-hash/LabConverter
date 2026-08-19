@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Response
+from fastapi import FastAPI, UploadFile, File, Response, Header, HTTPException
 import subprocess
 import tempfile
 import os
@@ -7,7 +7,13 @@ import uvicorn
 app = FastAPI()
 
 @app.post("/converter")
-async def converter_audio(file: UploadFile = File(...)):
+async def converter_audio(file: UploadFile = File(...), x_api_key: str = Header(None)):
+    # Puxa a senha definida no Easypanel (se não tiver lá, a senha padrão será 'minha-senha-secreta')
+    expected_api_key = os.getenv("API_KEY", "minha-senha-secreta")
+    
+    if x_api_key != expected_api_key:
+        raise HTTPException(status_code=401, detail="Acesso negado. Chave da API (x-api-key) invalida ou ausente.")
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
         temp_video.write(await file.read())
         temp_video_path = temp_video.name
