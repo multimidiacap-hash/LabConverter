@@ -1,0 +1,37 @@
+from fastapi import FastAPI, UploadFile, File, Response
+import subprocess
+import tempfile
+import os
+import uvicorn
+
+app = FastAPI()
+
+@app.post("/converter")
+async def converter_audio(file: UploadFile = File(...)):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
+        temp_video.write(await file.read())
+        temp_video_path = temp_video.name
+        
+    temp_audio_path = temp_video_path.replace(".mp4", ".mp3")
+    
+    try:
+        comando = [
+            "ffmpeg", "-y", "-i", temp_video_path,
+            "-vn", "-ar", "16000", "-ac", "1", "-b:a", "32k",
+            temp_audio_path
+        ]
+        subprocess.run(comando, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        with open(temp_audio_path, "rb") as f:
+            audio_data = f.read()
+            
+        return Response(content=audio_data, media_type="audio/mpeg")
+        
+    finally:
+        if os.path.exists(temp_video_path):
+            os.remove(temp_video_path)
+        if os.path.exists(temp_audio_path):
+            os.remove(temp_audio_path)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
